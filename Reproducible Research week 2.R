@@ -9,13 +9,15 @@ if(!(file.exists("activity.csv"))) {
 }
 
 #read data
+#after downloading data we should read it and complete the NAs
 data1 <- read.csv("activity.csv")
+data2 <- data1[complete.cases(data1), ]
 
 #1- steps taken per day
-steps_for_a_day <- aggregate(steps ~ date, data1, sum)
+steps_for_a_day <- aggregate(steps ~ date, data2, sum)
 
 #2- histogram for steps taken per day
-hist(steps_for_a_day$steps, main = paste("Total Steps per day"), col="purple",xlab="Number of Steps")
+hist(steps_for_a_day$steps, main = paste("Total Steps per day"),xlab="Number of Steps")
 
 #3- mean and median number of steps taken each day
 nmean <- mean(steps_for_a_day$steps)
@@ -26,7 +28,7 @@ nmedian
 
 
 #4-average activity daily pattern
-steps_interval <- aggregate(steps ~ interval, data1, mean)
+steps_interval <- aggregate(steps ~ interval, data2, mean)
 
 #time series plot
 plot(steps_interval$interval, steps_interval$steps, type="l", xlab="Steps interval", ylab="Number of Steps",main="Avg Num of Steps by Interval")
@@ -43,25 +45,16 @@ TotalNA <- sum(!complete.cases(data1))
 TotalNA
 
 #replace missing values
-StepsAvg <- aggregate(steps ~ interval, data = data1, FUN = mean)
-fillNA <- numeric()
 for (i in 1:nrow(data1)) {
-  obs <- data1[i, ]
-  if (is.na(obs$steps)) {
-    steps <- subset(StepsAvg, interval == obs$interval)$steps
-  } else {
-    steps <- obs$steps
+  if (is.na(data1$steps[i])) {
+  value <- steps_interval$steps[which(steps_interval$steps == data1$steps[i])]
   }
-  fillNA <- c(fillNA, steps)
 }
 
 #Create a new dataset with no missing vals
 
 data1_new <- data1
-data1_new$steps <- fillNA
-#there's an Error in `$<-.data.frame`(`*tmp*`, steps, value = c(1.71698113207547,  : 
-#replacement has 35137 rows, data has 17568
-
+data1_new$steps <- steps_interval$steps
 
 #Make a histogram of the total number of steps taken
 StepsTotalnumber <- aggregate(steps ~ date, data = data1_new, sum, na.rm = TRUE)
@@ -70,11 +63,11 @@ legend("topright", c("Imputed", "Non-imputed"), col=c("Red", "purple"), lwd=10)
 
 #calculate mean
 totalmean <- mean(StepsTotalnumber$steps)
-totalmean
+round(totalmean)
 
 #median
 totalmedian <- median(StepsTotalnumber$steps)
-totalmedian
+round(totalmedian)
 
 
 #do values differ
@@ -95,6 +88,6 @@ mediandifference
 #Are there differences in activity patterns between weekdays and weekends?
 library(lattice)
 weekdays <- c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday")
-data1 = as.factor(ifelse(is.element(weekdays(as.Date(data1$date)),weekdays), "Weekday", "Weekend"))
-StepsTotalnumber <- aggregate(steps ~ steps_interval, data1, mean)
+data1_new$dw = as.factor(ifelse(is.element(weekdays(as.Date(data1_new$date)),weekdays), "Weekday", "Weekend"))
+StepsTotalnumber1 <- aggregate(steps ~ StepsTotalnumber + dw, data1_new, mean)
 xyplot(StepsTotalnumber$steps ~ StepsTotalnumber$interval|StepsTotalnumber$steps, main="Average Steps per Day by Interval",xlab="Interval", ylab="Steps",layout=c(1,2), type="l")
